@@ -1,4 +1,3 @@
-import * as React from "react";
 import { useState, useEffect } from "react";
 import {
   FluentProvider,
@@ -10,7 +9,8 @@ import { ChatInput } from "./components/ChatInput";
 import { Message, MessageList } from "./components/MessageList";
 import { HeaderBar } from "./components/HeaderBar";
 import { useIsDarkMode } from "./useIsDarkMode";
-import { apiClient } from "./copilotService";
+import { createWebSocketClient } from "../../copilot-sdk-nodejs/websocket-client";
+import React from "react";
 
 const useStyles = makeStyles({
   container: {
@@ -26,61 +26,48 @@ export const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [session, setSession] = useState<any>(null);
+  const [error, setError] = useState("");
   const isDarkMode = useIsDarkMode();
 
   useEffect(() => {
-    // Test backend connection on mount
-    apiClient.testConnection()
-      .then((data) => {
-        console.log('Backend connected:', data);
-        setIsInitialized(true);
-      })
-      .catch((error) => {
-        console.error('Failed to connect to backend:', error);
-        setMessages([{
-          id: "error-init",
-          text: `Failed to connect to backend: ${error.message}`,
-          sender: "assistant",
-          timestamp: new Date(),
-        }]);
-      });
+    (async () => {
+      try {
+        const client = await createWebSocketClient(`wss://${location.host}/api/copilot`);
+        setSession(await client.createSession());
+      } catch (e: any) {
+        setError(`Failed to connect: ${e.message}`);
+      }
+    })();
   }, []);
 
   const handleSend = async () => {
-    if (!inputValue.trim() || !isInitialized) return;
+    if (!inputValue.trim() || !session) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
+    setMessages((prev) => [...prev, {
+      id: crypto.randomUUID(),
       text: inputValue,
       sender: "user",
       timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    }]);
     const userInput = inputValue;
     setInputValue("");
     setIsTyping(true);
+    setError("");
 
     try {
-      // Call backend API
-      const response = await apiClient.testConnection();
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: `Backend says: ${response.message} (You said: ${userInput})`,
-        sender: "assistant",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        sender: "assistant",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      for await (const event of session.query({ prompt: userInput })) {
+        if (event.type === 'assistant.message' && (event.data as any).content) {
+          setMessages((prev) => [...prev, {
+            id: event.id,
+            text: (event.data as any).content,
+            sender: "assistant",
+            timestamp: new Date(event.timestamp),
+          }]);
+        }
+      }
+    } catch (e: any) {
+      setError(e.message || 'Unknown error');
     } finally {
       setIsTyping(false);
     }
@@ -90,6 +77,7 @@ export const App: React.FC = () => {
     setMessages([]);
     setInputValue("");
     setIsTyping(false);
+    setError("");
   };
 
   return (
@@ -101,6 +89,8 @@ export const App: React.FC = () => {
           messages={messages}
           isTyping={isTyping}
         />
+
+        {error && <div style={{ color: 'red', padding: '8px' }}>{error}</div>}
 
         <ChatInput
           value={inputValue}

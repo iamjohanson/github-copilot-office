@@ -24,7 +24,7 @@ import type {
 /**
  * Browser-compatible CopilotSession
  */
-class BrowserCopilotSession {
+export class BrowserCopilotSession {
     private eventHandlers: Set<SessionEventHandler> = new Set();
     private toolHandlers: Map<string, ToolHandler> = new Map();
 
