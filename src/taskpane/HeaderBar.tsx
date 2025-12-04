@@ -4,7 +4,6 @@ import { Compose24Regular } from "@fluentui/react-icons";
 
 interface HeaderBarProps {
   onNewChat: () => void;
-  isDarkMode: boolean;
 }
 
 const useStyles = makeStyles({
@@ -15,14 +14,6 @@ const useStyles = makeStyles({
     padding: "8px 12px",
     gap: "8px",
     minHeight: "40px",
-  },
-  headerLight: {
-    borderBottom: "1px solid #e0e0e0",
-    backgroundColor: "#faf9f8",
-  },
-  headerDark: {
-    borderBottom: "1px solid #3b3a39",
-    backgroundColor: "#252423",
   },
   clearButton: {
     backgroundColor: "#0078d4",
@@ -42,11 +33,11 @@ const useStyles = makeStyles({
   },
 });
 
-export const HeaderBar: React.FC<HeaderBarProps> = ({ onNewChat, isDarkMode }) => {
+export const HeaderBar: React.FC<HeaderBarProps> = ({ onNewChat }) => {
   const styles = useStyles();
 
   return (
-    <div className={`${styles.header} ${isDarkMode ? styles.headerDark : styles.headerLight}`}>
+    <div className={styles.header}>
       <Tooltip content="New chat" relationship="label">
         <Button
           icon={<Compose24Regular />}

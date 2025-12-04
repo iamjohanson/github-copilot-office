@@ -22,12 +22,7 @@ const useStyles = makeStyles({
     display: "flex",
     flexDirection: "column",
     height: "100vh",
-  },
-  containerLight: {
-    backgroundColor: "#f5f5f5",
-  },
-  containerDark: {
-    backgroundColor: "#1b1a19",
+    backgroundColor: "var(--colorNeutralBackground3)",
   },
 });
 
@@ -36,12 +31,13 @@ export const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
 
   useEffect(() => {
     const darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    setIsDarkMode(darkModeQuery.matches);
-
+    
     const handleThemeChange = (e: MediaQueryListEvent) => {
       setIsDarkMode(e.matches);
     };
@@ -82,20 +78,18 @@ export const App: React.FC = () => {
 
   return (
     <FluentProvider theme={isDarkMode ? webDarkTheme : webLightTheme}>
-      <div className={`${styles.container} ${isDarkMode ? styles.containerDark : styles.containerLight}`}>
-        <HeaderBar onNewChat={handleClearChat} isDarkMode={isDarkMode} />
+      <div className={styles.container}>
+        <HeaderBar onNewChat={handleClearChat} />
 
         <MessageList
           messages={messages}
           isTyping={isTyping}
-          isDarkMode={isDarkMode}
         />
 
         <ChatInput
           value={inputValue}
           onChange={setInputValue}
           onSend={handleSend}
-          isDarkMode={isDarkMode}
           disabled={isTyping}
         />
       </div>

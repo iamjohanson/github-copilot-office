@@ -12,7 +12,6 @@ interface Message {
 interface MessageListProps {
   messages: Message[];
   isTyping: boolean;
-  isDarkMode: boolean;
 }
 
 const useStyles = makeStyles({
@@ -31,6 +30,7 @@ const useStyles = makeStyles({
     height: "100%",
     fontSize: "20px",
     fontWeight: "300",
+    color: "var(--colorNeutralForeground4)",
   },
   messageUser: {
     alignSelf: "flex-end",
@@ -48,22 +48,11 @@ const useStyles = makeStyles({
     maxWidth: "70%",
     wordWrap: "break-word",
   },
-  messageAssistantLight: {
-    backgroundColor: "white",
-    color: "#323130",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-  },
-  messageAssistantDark: {
-    backgroundColor: "#292827",
-    color: "#f3f2f1",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
-  },
 });
 
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   isTyping,
-  isDarkMode,
 }) => {
   const styles = useStyles();
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -75,7 +64,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   return (
     <div className={styles.chatContainer}>
       {messages.length === 0 && (
-        <div className={styles.emptyState} style={{ color: isDarkMode ? "#8a8886" : "#999" }}>
+        <div className={styles.emptyState}>
           What can I do for you?
         </div>
       )}
@@ -83,18 +72,14 @@ export const MessageList: React.FC<MessageListProps> = ({
       {messages.map((message) => (
         <div
           key={message.id}
-          className={
-            message.sender === "user"
-              ? styles.messageUser
-              : `${styles.messageAssistant} ${isDarkMode ? styles.messageAssistantDark : styles.messageAssistantLight}`
-          }
+          className={message.sender === "user" ? styles.messageUser : styles.messageAssistant}
         >
           {message.text}
         </div>
       ))}
       
       {isTyping && (
-        <div className={`${styles.messageAssistant} ${isDarkMode ? styles.messageAssistantDark : styles.messageAssistantLight}`}>
+        <div className={styles.messageAssistant}>
           <span>Typing...</span>
         </div>
       )}

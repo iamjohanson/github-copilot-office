@@ -7,7 +7,6 @@ interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
-  isDarkMode: boolean;
   disabled?: boolean;
 }
 
@@ -19,21 +18,15 @@ const useStyles = makeStyles({
     flexDirection: "column",
     gap: "8px",
     borderRadius: "6px",
-  },
-  inputContainerLight: {
-    backgroundColor: "white",
-    border: "1px solid #d1d1d1",
-  },
-  inputContainerDark: {
-    backgroundColor: "#252423",
-    border: "1px solid #3b3a39",
+    backgroundColor: "var(--colorNeutralBackground1)",
+    border: "1px solid var(--colorNeutralStroke1)",
   },
   input: {
     flex: 1,
     padding: "4px 8px",
     borderRadius: "0",
     border: "none !important",
-    backgroundColor: "transparent",
+    backgroundColor: "transparent !important",
     outline: "none !important",
     boxShadow: "none !important",
     "::after": {
@@ -55,7 +48,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   value,
   onChange,
   onSend,
-  isDarkMode,
   disabled = false,
 }) => {
   const styles = useStyles();
@@ -73,7 +65,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   return (
-    <div className={`${styles.inputContainer} ${isDarkMode ? styles.inputContainerDark : styles.inputContainerLight}`}>
+    <div className={styles.inputContainer}>
       <Textarea
         ref={inputRef}
         className={styles.input}
