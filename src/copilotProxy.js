@@ -15,9 +15,8 @@ function setupCopilotProxy(httpsServer) {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });
-    } else {
-      socket.destroy();
     }
+    // Let other WebSocket connections (e.g., Vite HMR) pass through
   });
 
   wss.on('connection', (ws) => {
