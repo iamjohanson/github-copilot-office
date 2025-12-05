@@ -2,13 +2,13 @@ import { Tool } from "../../../copilot-sdk-nodejs/types";
 
 export const replaceText: Tool = {
   name: "replace_text",
-  description: "Find and replace text in the document. The replacement can be OOXML for formatted content.",
+  description: "Find plain text and replace with OOXML content. Searches for text strings, not XML markup.",
   parameters: {
     type: "object",
     properties: {
       find: {
         type: "string",
-        description: "The text to find.",
+        description: "The plain text to find (not XML).",
       },
       replaceOoxml: {
         type: "string",
