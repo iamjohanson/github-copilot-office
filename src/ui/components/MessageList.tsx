@@ -41,6 +41,11 @@ const useStyles = makeStyles({
     fontWeight: "300",
     color: "var(--colorNeutralForeground4)",
   },
+  assistantIcon: {
+    width: "24px",
+    height: "24px",
+    borderRadius: "4px",
+  },
   messageUser: {
     alignSelf: "flex-end",
     backgroundColor: "#0078d4",
@@ -167,7 +172,7 @@ export const MessageList: React.FC<MessageListProps> = ({
             </>
           ) : message.sender === "assistant" ? (
             <>
-              <span style={{ color: '#8b5cf6', fontSize: '26px', lineHeight: '1', marginTop: '-5px' }}>●</span>
+              <img src="/icon-32.png" alt="" className={styles.assistantIcon} />
               <div style={{ justifySelf: 'start' }}><Markdown remarkPlugins={[remarkGfm]}>{message.text}</Markdown></div>
             </>
           ) : (
@@ -190,7 +195,7 @@ export const MessageList: React.FC<MessageListProps> = ({
       
       {isTyping && (
         <div className={styles.messageAssistant}>
-          <span style={{ color: '#8b5cf6', fontSize: '26px', lineHeight: '1', marginTop: '-5px' }}>●</span>
+          <img src="/icon-32.png" alt="" className={styles.assistantIcon} />
           <div style={{ justifySelf: 'start' }}>
             {streamingText ? (
               <Markdown remarkPlugins={[remarkGfm]}>{streamingText}</Markdown>
