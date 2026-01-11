@@ -20,6 +20,8 @@ DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..\..\build\windows
 OutputBaseFilename=CopilotOfficeAddin-Setup-{#MyAppVersion}
+SetupIconFile=app.ico
+UninstallDisplayIcon={app}\app.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -35,6 +37,9 @@ Name: "startatlogin"; Description: "Start automatically when Windows starts"; Gr
 [Files]
 ; Main executable (built with pkg)
 Source: "..\..\build\windows\copilot-office-server.exe"; DestDir: "{app}"; Flags: ignoreversion
+
+; Application icon
+Source: "app.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Static files
 Source: "..\..\dist\*"; DestDir: "{app}\dist"; Flags: ignoreversion recursesubdirs createallsubdirs

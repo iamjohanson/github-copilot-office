@@ -145,7 +145,7 @@ cat > "$BUILD_DIR/conclusion.html" << 'EOF'
     <p><strong>Next steps:</strong></p>
     <ol>
         <li>Open Word, PowerPoint, or Excel</li>
-        <li>Look for the "GitHub Copilot Agent" button on the Home ribbon</li>
+        <li>Look for the "GitHub Copilot" button on the Home ribbon</li>
         <li>Click the button to open the Copilot panel</li>
     </ol>
     <p>The service will start automatically when you log in.</p>

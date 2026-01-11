@@ -19,6 +19,7 @@ const httpsConfig = {
 module.exports = defineConfig({
   plugins: [react.default()],
   root: 'src/ui',
+  publicDir: 'public',
   build: {
     outDir: '../../dist',
     emptyOutDir: true,

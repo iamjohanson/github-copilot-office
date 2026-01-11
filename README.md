@@ -16,7 +16,7 @@ npm install
 npm run dev
 ```
 
-Then open Word, Excel, or PowerPoint and look for the **GitHub Copilot Agent** button on the Home ribbon.
+Then open Word, Excel, or PowerPoint and look for the **GitHub Copilot** button on the Home ribbon.
 
 ## Building Installers
 
