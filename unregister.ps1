@@ -4,7 +4,7 @@ Write-Host "Removing all sideloaded add-ins from Word, PowerPoint, Excel, and On
 
 if (Test-Path $regPath) {
     Remove-Item -Path $regPath -Recurse -Force
-    Write-Host "✓ All add-ins unregistered" -ForegroundColor Green
+    Write-Host "All add-ins unregistered" -ForegroundColor Green
 } else {
     Write-Host "No add-ins were registered" -ForegroundColor Gray
 }
