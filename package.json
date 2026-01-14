@@ -1,5 +1,5 @@
 {
-  "name": "GitHub Copilot Office Add-In",
+  "name": "github-copilot-office-add-in",
   "version": "1.0.0",
   "description": "Add GitHub Copilot add-in to Office, Word and PowerPoint applications.",
   "main": "src/tray/main.js",
