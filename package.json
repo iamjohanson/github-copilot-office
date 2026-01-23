@@ -9,12 +9,9 @@
     "start:tray": "electron .",
     "build": "vite build",
     "build:icons": "node scripts/generate-icons.js",
-    "build:installer": "npm run build && npm run build:macos && npm run build:windows",
-    "build:macos": "./installer/macos/build.sh",
-    "build:windows": "powershell -ExecutionPolicy Bypass -File installer/windows/build.ps1",
-    "build:electron": "npm run clean:extraneous && npm run build && electron-builder",
-    "build:electron:win": "npm run clean:extraneous && npm run build && electron-builder --win",
-    "build:electron:mac": "npm run clean:extraneous && npm run build && electron-builder --mac",
+    "build:installer": "npm run clean:extraneous && npm run build && electron-builder",
+    "build:installer:win": "npm run clean:extraneous && npm run build && electron-builder --win",
+    "build:installer:mac": "npm run clean:extraneous && npm run build && electron-builder --mac",
     "clean:extraneous": "node scripts/clean-extraneous.js"
   },
   "pkg": {

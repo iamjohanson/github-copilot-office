@@ -20,28 +20,27 @@ Then open Word, Excel, or PowerPoint and look for the **GitHub Copilot** button 
 
 ## Building Installers
 
-Create standalone installers that bundle everything users need—no Node.js required.
+Create standalone installers that bundle everything users need—no Node.js required. Installers include a system tray app that runs in the background.
 
 ### Prerequisites
 
-- Node.js 18+
-- **Windows**: [Inno Setup 6](https://jrsoftware.org/isinfo.php)
+- Node.js 20+
 - **macOS**: Xcode Command Line Tools (`xcode-select --install`)
 
 ### Build Commands
 
 ```bash
-# Build both platforms
+# Build for current platform
 npm run build:installer
 
 # Build individually
-npm run build:macos      # → build/macos/CopilotOfficeAddin-1.0.0.pkg
-npm run build:windows    # → build/windows/CopilotOfficeAddin-Setup-1.0.0.exe
-
-# Build Electron installer (with system tray support)
-npm run build:electron:win   # → build/electron/GitHub Copilot Office Add-in Setup 1.0.0.exe
-npm run build:electron:mac   # → build/electron/GitHub Copilot Office Add-in-1.0.0.dmg
+npm run build:installer:mac   # → build/electron/*.dmg
+npm run build:installer:win   # → build/electron/*.exe
 ```
+
+### CI/CD
+
+Installers are automatically built on push/PR to `main` via GitHub Actions. Download artifacts from the Actions tab.
 
 ### What the Installers Do
 
@@ -79,12 +78,13 @@ See [installer/README.md](installer/README.md) for detailed build instructions, 
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server with hot reload |
+| `npm run dev` | Start development server with hot reload (port 3000) |
+| `npm run start` | Run production server standalone (port 52390) |
+| `npm run start:tray` | Run Electron tray app locally |
 | `npm run build` | Build frontend for production |
-| `npm run start` | Run production server |
-| `npm run build:installer` | Build installers for both platforms |
-| `npm run build:macos` | Build macOS .pkg installer |
-| `npm run build:windows` | Build Windows .exe installer |
+| `npm run build:installer` | Build installer for current platform |
+| `npm run build:installer:mac` | Build macOS .dmg installer |
+| `npm run build:installer:win` | Build Windows .exe installer |
 
 ## Uninstalling
 
