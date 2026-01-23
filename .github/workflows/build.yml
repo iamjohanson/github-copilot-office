@@ -18,9 +18,13 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@github'
 
       - name: Install dependencies
         run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Build installer
         run: npm run build:installer:mac
@@ -47,9 +51,13 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@github'
 
       - name: Install dependencies
         run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Build installer
         run: npm run build:installer:win
