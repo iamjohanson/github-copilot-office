@@ -80,6 +80,7 @@ jobs:
 
       - name: Create source zip (excluding private files)
         run: |
+          mkdir -p artifacts
           zip -r artifacts/copilot-office-addin-source-v${{ github.event.inputs.version }}.zip . \
             -x ".github/*" \
             -x "package-lock.json" \
