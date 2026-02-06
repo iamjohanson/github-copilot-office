@@ -79,7 +79,7 @@ if (platform === 'darwin') {
 
 // Copy GETTING_STARTED_RELEASE.md as GETTING_STARTED.md
 fs.copyFileSync(
-  path.join(projectRoot, 'GETTING_STARTED_RELEASE.md'),
+  path.join(projectRoot, 'installer', 'GETTING_STARTED_RELEASE.md'),
   path.join(buildDir, 'GETTING_STARTED.md')
 );
 console.log('Copied GETTING_STARTED.md');
