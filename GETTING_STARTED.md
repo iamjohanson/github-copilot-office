@@ -19,8 +19,8 @@ Install the following software:
 ### 1. Clone and Install Dependencies
 
 ```bash
-git clone https://github.com/githubnext/copilot-office-addin.git
-cd copilot-office-addin
+git clone https://github.com/patniko/github-copilot-office.git
+cd github-copilot-office
 npm install
 ```
 

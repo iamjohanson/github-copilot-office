@@ -26,13 +26,13 @@ module.exports = defineConfig({
     chunkSizeWarningLimit: 1000,
   },
   server: {
-    port: 3000,
+    port: 52390,
     strictPort: true,
     https: httpsConfig,
     hmr: {
       protocol: 'wss',
       host: 'localhost',
-      port: 3000,
+      port: 52390,
     },
   },
 });
