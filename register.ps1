@@ -65,9 +65,9 @@ Write-Host ""
 
 Write-Host "Setup complete! Next steps:" -ForegroundColor Cyan
 Write-Host "1. Close Word, PowerPoint, Excel, and OneNote if they are open"
-Write-Host "2. Start the dev server: npm run dev"
+Write-Host "2. Start the tray app: npm run start:tray"
 Write-Host "3. Open Word, PowerPoint, Excel, or OneNote"
-Write-Host "4. Look for 'Copilot Agent' button on the Home ribbon"
+Write-Host "4. Go to Insert > Add-ins > My Add-ins and look for 'GitHub Copilot'"
 Write-Host ""
 Write-Host "To unregister, run: .\unregister.ps1" -ForegroundColor Gray
 
