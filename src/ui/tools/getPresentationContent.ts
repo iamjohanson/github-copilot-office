@@ -1,4 +1,5 @@
 import type { Tool } from "@github/copilot-sdk";
+import { remoteLog } from "../lib/remoteLog";
 
 const CHUNK_SIZE = 10; // Slides per batch in a single PowerPoint.run()
 
@@ -22,7 +23,9 @@ async function getSlideChunkContent(startIdx: number, endIdx: number, slideCount
       for (const shape of slide.shapes.items) {
         try {
           shape.textFrame.textRange.load("text");
-        } catch {}
+        } catch (e) {
+          remoteLog("getPresentationContent", `Failed to load textRange for shape in slide chunk starting at ${startIdx}`, e);
+        }
       }
     }
     await context.sync();
@@ -39,7 +42,9 @@ async function getSlideChunkContent(startIdx: number, endIdx: number, slideCount
           if (shape.textFrame?.textRange?.text) {
             texts.push(shape.textFrame.textRange.text);
           }
-        } catch {}
+        } catch (e) {
+          remoteLog("getPresentationContent", `Failed to read text from shape on slide ${slideIndex + 1}`, e);
+        }
       }
       results.push(`=== Slide ${slideIndex + 1} of ${slideCount} ===\n${texts.join("\n\n") || "(empty slide)"}`);
     }

@@ -1,4 +1,5 @@
 import type { Tool } from "@github/copilot-sdk";
+import { remoteLog } from "../lib/remoteLog";
 
 const CHUNK_SIZE = 10;
 
@@ -20,7 +21,9 @@ async function getSlidePreviewChunk(startIdx: number, endIdx: number): Promise<s
       for (const shape of slide.shapes.items.slice(0, 5)) {
         try {
           shape.textFrame.textRange.load("text");
-        } catch {}
+        } catch (e) {
+          remoteLog("getPresentationOverview", `Failed to load textRange for shape in slide chunk starting at ${startIdx}`, e);
+        }
       }
     }
     await context.sync();
@@ -37,7 +40,9 @@ async function getSlidePreviewChunk(startIdx: number, endIdx: number): Promise<s
           if (text) {
             texts.push(text.length > 100 ? text.substring(0, 100) + "..." : text);
           }
-        } catch {}
+        } catch (e) {
+          remoteLog("getPresentationOverview", `Failed to read text from shape on slide ${slideIndex + 1}`, e);
+        }
       }
 
       const preview = texts.length > 0 

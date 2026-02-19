@@ -91,6 +91,18 @@ async function createServer() {
     }
   });
 
+  // Remote logging endpoint — prints client-side errors to the server console
+  apiRouter.post('/log', (req, res) => {
+    const { level = 'error', tag = 'client', message, detail } = req.body || {};
+    const prefix = `[${tag}]`;
+    if (level === 'error') {
+      console.error(prefix, message, detail || '');
+    } else {
+      console.log(prefix, message, detail || '');
+    }
+    res.sendStatus(204);
+  });
+
   app.use('/api', apiRouter);
 
   // ========== Vite Dev Server (Frontend) ==========
