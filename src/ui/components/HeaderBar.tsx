@@ -2,21 +2,14 @@ import * as React from "react";
 import { Button, Tooltip, makeStyles, Dropdown, Option } from "@fluentui/react-components";
 import { Compose24Regular, History24Regular } from "@fluentui/react-icons";
 
-export type ModelType = "gpt-5" | "claude-sonnet-4" | "claude-sonnet-4.5" | "claude-opus-4.5" | "claude-haiku-4.5";
-
-const MODELS: { key: ModelType; label: string }[] = [
-  { key: "claude-opus-4.5", label: "Claude Opus 4.5" },
-  { key: "claude-sonnet-4.5", label: "Claude Sonnet 4.5" },
-  { key: "claude-sonnet-4", label: "Claude Sonnet 4" },
-  { key: "claude-haiku-4.5", label: "Claude Haiku 4.5" },
-  { key: "gpt-5", label: "GPT 5" },
-];
+export type ModelType = string;
 
 interface HeaderBarProps {
   onNewChat: () => void;
   onShowHistory: () => void;
   selectedModel: ModelType;
   onModelChange: (model: ModelType) => void;
+  models: { key: string; label: string }[];
 }
 
 const useStyles = makeStyles({
@@ -76,9 +69,9 @@ const useStyles = makeStyles({
   },
 });
 
-export const HeaderBar: React.FC<HeaderBarProps> = ({ onNewChat, onShowHistory, selectedModel, onModelChange }) => {
+export const HeaderBar: React.FC<HeaderBarProps> = ({ onNewChat, onShowHistory, selectedModel, onModelChange, models }) => {
   const styles = useStyles();
-  const selectedLabel = MODELS.find(m => m.key === selectedModel)?.label || selectedModel;
+  const selectedLabel = models.find(m => m.key === selectedModel)?.label || selectedModel;
 
   return (
     <div className={styles.header}>
@@ -93,7 +86,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onNewChat, onShowHistory, 
           }
         }}
       >
-        {MODELS.map((model) => (
+        {models.map((model) => (
           <Option key={model.key} value={model.key}>
             {model.label}
           </Option>

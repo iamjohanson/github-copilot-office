@@ -103,6 +103,22 @@ async function createServer() {
     res.sendStatus(204);
   });
 
+  // List available models by reading from the Copilot SDK type declarations
+  apiRouter.get('/models', (req, res) => {
+    try {
+      const sdkTypes = path.resolve(__dirname, '../node_modules/@github/copilot/sdk/index.d.ts');
+      const content = fs.readFileSync(sdkTypes, 'utf8');
+      const match = content.match(/SUPPORTED_MODELS:\s*readonly\s*\[([^\]]+)\]/);
+      if (!match) {
+        return res.status(500).json({ error: 'Could not parse SUPPORTED_MODELS from SDK' });
+      }
+      const models = match[1].match(/"([^"]+)"/g).map(s => s.replace(/"/g, ''));
+      res.json({ models });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.use('/api', apiRouter);
 
   // ========== Vite Dev Server (Frontend) ==========

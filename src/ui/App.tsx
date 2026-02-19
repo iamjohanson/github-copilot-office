@@ -31,10 +31,28 @@ const useStyles = makeStyles({
   },
 });
 
-const DEFAULT_MODEL: ModelType = "claude-sonnet-4.5";
+const FALLBACK_MODELS = [
+  { key: "claude-sonnet-4.5", label: "Claude Sonnet 4.5" },
+];
+
+function modelIdToLabel(id: string): string {
+  return id
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function pickDefaultModel(models: { key: string }[]): ModelType {
+  const preferred = ["claude-sonnet-4.6", "claude-sonnet-4.5"];
+  for (const id of preferred) {
+    if (models.some((m) => m.key === id)) return id;
+  }
+  return models[0]?.key || "claude-sonnet-4.5";
+}
 
 export const App: React.FC = () => {
   const styles = useStyles();
+  const [availableModels, setAvailableModels] = useState(FALLBACK_MODELS);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [images, setImages] = useState<ImageAttachment[]>([]);
@@ -44,7 +62,7 @@ export const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [client, setClient] = useState<any>(null);
   const [error, setError] = useState("");
-  const [selectedModel, setSelectedModel] = useLocalStorage<ModelType>("word-addin-selected-model", DEFAULT_MODEL);
+  const [selectedModel, setSelectedModel] = useLocalStorage<ModelType>("word-addin-selected-model", "");
   const [showHistory, setShowHistory] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [officeHost, setOfficeHost] = useState<OfficeHost>("word");
@@ -52,6 +70,28 @@ export const App: React.FC = () => {
   
   // Track session creation time
   const sessionCreatedAt = useRef<string>("");
+
+  // Fetch available models from server
+  useEffect(() => {
+    fetch("/api/models")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.models?.length) {
+          const models = data.models.map((id: string) => ({ key: id, label: modelIdToLabel(id) }));
+          setAvailableModels(models);
+          // Set default model if none stored yet
+          if (!selectedModel) {
+            setSelectedModel(pickDefaultModel(models));
+          }
+        }
+      })
+      .catch(() => {
+        // Use fallback models
+        if (!selectedModel) {
+          setSelectedModel(pickDefaultModel(FALLBACK_MODELS));
+        }
+      });
+  }, []);
 
   // Save session whenever messages change (debounced effect)
   useEffect(() => {
@@ -144,8 +184,10 @@ Always use your tools to interact with the document. Never ask users to save, ex
   };
 
   useEffect(() => {
-    startNewSession(selectedModel);
-  }, []);
+    if (selectedModel) {
+      startNewSession(selectedModel);
+    }
+  }, [selectedModel === "" ? "" : "ready"]);
 
   const handleModelChange = (newModel: ModelType) => {
     setSelectedModel(newModel);
@@ -277,6 +319,7 @@ Always use your tools to interact with the document. Never ask users to save, ex
           onShowHistory={() => setShowHistory(true)}
           selectedModel={selectedModel}
           onModelChange={handleModelChange}
+          models={availableModels}
         />
 
         <MessageList
