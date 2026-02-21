@@ -235,7 +235,6 @@ export class WebSocketCopilotClient {
             requestPermission: config.requestPermission ?? false,
             workingDirectory: config.workingDirectory,
             streaming: true,
-            availableTools: toolDefs?.map((t) => t.name),
             tools: toolDefs,
         });
 

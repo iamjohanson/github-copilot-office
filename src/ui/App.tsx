@@ -247,7 +247,7 @@ Always use your tools to interact with the document. Never ask users to save, ex
         model,
         tools,
         systemMessage,
-        requestPermission: false,
+        requestPermission: true,
         workingDirectory: cwd || undefined,
       });
 

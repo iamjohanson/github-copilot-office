@@ -22,7 +22,8 @@ export class PermissionService {
   private _cwd: string | null = null;
 
   constructor() {
-    this._allowAll = localStorage.getItem(ALLOW_ALL_KEY) === "true";
+    const stored = localStorage.getItem(ALLOW_ALL_KEY);
+    this._allowAll = stored === null ? true : stored === "true";
   }
 
   get allowAll(): boolean {
@@ -73,12 +74,9 @@ export class PermissionService {
   evaluate(request: PermissionRequest): PermissionResult | null {
     const cwd = this._cwd;
 
-    // Allow-all mode: approve everything under cwd
-    if (this._allowAll && cwd) {
-      if (request.kind === "shell") return { kind: "approved" };
-      const filePath = request.path || request.fileName;
-      if (filePath && isUnder(filePath, cwd)) return { kind: "approved" };
-      if (request.kind === "mcp") return { kind: "approved" };
+    // Allow-all mode: approve everything
+    if (this._allowAll) {
+      return { kind: "approved" };
     }
 
     // Auto-approve reads under cwd
