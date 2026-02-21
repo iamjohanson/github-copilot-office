@@ -17,6 +17,7 @@ import { createWebSocketClient, PermissionRequest, PermissionResult, ModelInfo }
 import { PermissionService } from "./lib/permissionService";
 import { getToolsForHost } from "./tools";
 import { remoteLog } from "./lib/remoteLog";
+import { trafficStats } from "./lib/websocket-transport";
 import { 
   SavedSession, 
   OfficeHost, 
@@ -358,6 +359,7 @@ Always use your tools to interact with the document. Never ask users to save, ex
       };
 
       let eventCount = 0;
+      trafficStats.reset();
       for await (const event of session.query({ 
         prompt: userInput || "Here are some images for you to analyze.",
         attachments: attachments.length > 0 ? attachments : undefined

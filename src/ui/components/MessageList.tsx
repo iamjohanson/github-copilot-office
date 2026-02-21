@@ -285,21 +285,17 @@ function formatBytes(b: number): string {
   return `${(b / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// Live traffic counter that polls trafficStats
+// Live traffic counter that polls trafficStats (reset by App before each query)
 const TrafficCounter: React.FC = () => {
   const [stats, setStats] = useState({ bytesIn: 0, bytesOut: 0 });
-  const baseRef = useRef({ bytesIn: trafficStats.bytesIn, bytesOut: trafficStats.bytesOut });
   const prevInRef = useRef(0);
   const [flash, setFlash] = useState(false);
 
   useEffect(() => {
-    baseRef.current = { bytesIn: trafficStats.bytesIn, bytesOut: trafficStats.bytesOut };
     const interval = setInterval(() => {
-      const inDelta = trafficStats.bytesIn - baseRef.current.bytesIn;
-      const outDelta = trafficStats.bytesOut - baseRef.current.bytesOut;
-      setStats({ bytesIn: inDelta, bytesOut: outDelta });
-      if (inDelta !== prevInRef.current) {
-        prevInRef.current = inDelta;
+      setStats({ bytesIn: trafficStats.bytesIn, bytesOut: trafficStats.bytesOut });
+      if (trafficStats.bytesIn !== prevInRef.current) {
+        prevInRef.current = trafficStats.bytesIn;
         setFlash(true);
         setTimeout(() => setFlash(false), 200);
       }
