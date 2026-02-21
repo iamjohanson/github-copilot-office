@@ -1,7 +1,6 @@
 import { getDocumentContent } from "./getDocumentContent";
 import { setDocumentContent } from "./setDocumentContent";
 import { getSelection } from "./getSelection";
-import { webFetch } from "./webFetch";
 import { getPresentationContent } from "./getPresentationContent";
 import { getPresentationOverview } from "./getPresentationOverview";
 import { getSlideImage } from "./getSlideImage";
@@ -47,7 +46,6 @@ export const wordTools = [
   findAndReplace,
   insertTable,
   applyStyleToSelection,
-  webFetch,
 ];
 
 export const powerpointTools = [
@@ -61,7 +59,6 @@ export const powerpointTools = [
   updateSlideShape,
   setSlideNotes,
   duplicateSlide,
-  webFetch,
 ];
 
 export const excelTools = [
@@ -75,7 +72,6 @@ export const excelTools = [
   insertChart,
   applyCellFormatting,
   createNamedRange,
-  webFetch,
 ];
 
 export function getToolsForHost(host: typeof Office.HostType[keyof typeof Office.HostType]) {

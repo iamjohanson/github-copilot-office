@@ -194,13 +194,15 @@ Always use your tools to interact with the document. Never ask users to save, ex
       };
 
       const toolNames = tools.map(t => t.name);
+      // Include CLI built-in web_fetch alongside our Office tools
+      const availableTools = [...toolNames, "web_fetch"];
 
       const newSession = await newClient.createSession({
         model,
         tools,
         systemMessage,
         requestPermission: true,
-        availableTools: toolNames,
+        availableTools,
       });
 
       // Register permission handler on the session
