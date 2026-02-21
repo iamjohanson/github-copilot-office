@@ -10,7 +10,7 @@ const turndown = new TurndownService({
 turndown.remove(["script", "style", "nav", "footer", "header", "aside", "noscript", "iframe"]);
 
 export const webFetch: Tool = {
-  name: "web_fetch",
+  name: "fetch_web_page",
   description: "Fetch content from a URL (GET only). Returns the page content as markdown. Useful for getting web page content, API data, etc.",
   parameters: {
     type: "object",

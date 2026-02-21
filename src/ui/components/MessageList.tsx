@@ -85,7 +85,7 @@ const toolConfig: Record<string, { icon: string; format: (args: Record<string, u
     icon: "✏️",
     format: (args) => args.sheetName ? `Updating "${args.sheetName}"` : "Updating worksheet",
   },
-  web_fetch: {
+  fetch_web_page: {
     icon: "🌐",
     format: (args) => {
       try {
