@@ -33,7 +33,7 @@ Examples:
     },
     required: ["name", "range"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { name, range: rangeAddress, comment } = args as {
       name: string;
       range: string;

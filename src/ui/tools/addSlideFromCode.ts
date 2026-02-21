@@ -79,7 +79,7 @@ PptxGenJS API Examples:
     },
     required: ["code"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { code, replaceSlideIndex } = args as { code: string; replaceSlideIndex?: number };
 
     try {

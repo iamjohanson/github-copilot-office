@@ -59,7 +59,7 @@ Examples:
     },
     required: [],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const {
       bold,
       italic,

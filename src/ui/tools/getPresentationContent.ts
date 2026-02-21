@@ -82,7 +82,7 @@ export const getPresentationContent: Tool = {
     },
     required: [],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { slideIndex, startIndex, endIndex } = args as { 
       slideIndex?: number; 
       startIndex?: number; 

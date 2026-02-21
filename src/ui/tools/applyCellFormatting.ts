@@ -82,7 +82,7 @@ Examples:
     },
     required: ["range"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const {
       range: rangeAddress,
       sheetName,

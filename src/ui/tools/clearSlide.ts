@@ -13,7 +13,7 @@ export const clearSlide: Tool = {
     },
     required: ["slideIndex"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { slideIndex } = args as { slideIndex: number };
 
     try {

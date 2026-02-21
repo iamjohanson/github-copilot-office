@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   FluentProvider,
   webLightTheme,
@@ -9,10 +9,14 @@ import { ChatInput, ImageAttachment } from "./components/ChatInput";
 import { Message, MessageList } from "./components/MessageList";
 import { HeaderBar, ModelType } from "./components/HeaderBar";
 import { SessionHistory } from "./components/SessionHistory";
+import { PermissionDialog, PermissionDecision } from "./components/PermissionDialog";
+import { PermissionManager } from "./components/PermissionManager";
 import { useIsDarkMode } from "./useIsDarkMode";
 import { useLocalStorage } from "./useLocalStorage";
-import { createWebSocketClient } from "./lib/websocket-client";
+import { createWebSocketClient, PermissionRequest, PermissionResult, ModelInfo } from "./lib/websocket-client";
+import { PermissionService } from "./lib/permissionService";
 import { getToolsForHost } from "./tools";
+import { remoteLog } from "./lib/remoteLog";
 import { 
   SavedSession, 
   OfficeHost, 
@@ -50,6 +54,8 @@ function pickDefaultModel(models: { key: string }[]): ModelType {
   return models[0]?.key || "claude-sonnet-4.5";
 }
 
+const permissionService = new PermissionService();
+
 export const App: React.FC = () => {
   const styles = useStyles();
   const [availableModels, setAvailableModels] = useState(FALLBACK_MODELS);
@@ -64,34 +70,96 @@ export const App: React.FC = () => {
   const [error, setError] = useState("");
   const [selectedModel, setSelectedModel] = useLocalStorage<ModelType>("word-addin-selected-model", "");
   const [showHistory, setShowHistory] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [officeHost, setOfficeHost] = useState<OfficeHost>("word");
+  const [cwd, setCwd] = useLocalStorage<string>("copilot-cwd", "");
+  const [allowAll, setAllowAll] = useState(permissionService.allowAll);
+  const [permRules, setPermRules] = useState(permissionService.getRules());
   const isDarkMode = useIsDarkMode();
+
+  // Permission prompt state
+  const [pendingPermission, setPendingPermission] = useState<{
+    request: PermissionRequest;
+    resolve: (result: PermissionResult) => void;
+  } | null>(null);
   
   // Track session creation time
   const sessionCreatedAt = useRef<string>("");
 
-  // Fetch available models from server
+  // Keep permissionService.cwd in sync
   useEffect(() => {
-    fetch("/api/models")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.models?.length) {
-          const models = data.models.map((id: string) => ({ key: id, label: modelIdToLabel(id) }));
-          setAvailableModels(models);
-          // Set default model if none stored yet
-          if (!selectedModel) {
-            setSelectedModel(pickDefaultModel(models));
-          }
-        }
-      })
-      .catch(() => {
-        // Use fallback models
-        if (!selectedModel) {
-          setSelectedModel(pickDefaultModel(FALLBACK_MODELS));
-        }
+    permissionService.cwd = cwd || null;
+  }, [cwd]);
+
+  // Permission handler called by the WebSocket client
+  const handlePermissionRequest = useCallback(
+    (request: PermissionRequest): Promise<PermissionResult> => {
+      // Try auto-evaluation first
+      const autoResult = permissionService.evaluate(request);
+      if (autoResult) return Promise.resolve(autoResult);
+
+      // Prompt the user
+      return new Promise<PermissionResult>((resolve) => {
+        setPendingPermission({ request, resolve });
       });
-  }, []);
+    },
+    [],
+  );
+
+  const handlePermissionDecision = useCallback(
+    (decision: PermissionDecision) => {
+      if (!pendingPermission) return;
+      const { request, resolve } = pendingPermission;
+
+      if (decision === "always") {
+        // Save a rule for this kind + path
+        const pathPrefix = request.path || request.fileName || cwd || "/";
+        permissionService.addRule({ kind: request.kind, pathPrefix });
+        setPermRules(permissionService.getRules());
+        resolve({ kind: "approved" });
+      } else if (decision === "allow") {
+        resolve({ kind: "approved" });
+      } else {
+        resolve({ kind: "denied-interactively-by-user" });
+      }
+      setPendingPermission(null);
+    },
+    [pendingPermission, cwd],
+  );
+
+  // Fetch available models from CLI via models.list RPC (or fallback to /api/models)
+  const fetchModels = useCallback(async (wsClient: any) => {
+    try {
+      const models: ModelInfo[] = await wsClient.listModels();
+      if (models?.length) {
+        const mapped = models.map((m: ModelInfo) => ({ key: m.id, label: m.name || modelIdToLabel(m.id) }));
+        setAvailableModels(mapped);
+        if (!selectedModel) {
+          setSelectedModel(pickDefaultModel(mapped));
+        }
+        return;
+      }
+    } catch {
+      // listModels not supported by this CLI version, fall back
+    }
+    // Fallback: server-side /api/models
+    try {
+      const r = await fetch("/api/models");
+      const data = await r.json();
+      if (data.models?.length) {
+        const mapped = data.models.map((id: string) => ({ key: id, label: modelIdToLabel(id) }));
+        setAvailableModels(mapped);
+        if (!selectedModel) {
+          setSelectedModel(pickDefaultModel(mapped));
+        }
+      }
+    } catch {
+      if (!selectedModel) {
+        setSelectedModel(pickDefaultModel(FALLBACK_MODELS));
+      }
+    }
+  }, [selectedModel, setSelectedModel]);
 
   // Save session whenever messages change (debounced effect)
   useEffect(() => {
@@ -127,6 +195,7 @@ export const App: React.FC = () => {
     setStreamingText("");
     setError("");
     setShowHistory(false);
+    setShowSettings(false);
     
     try {
       if (client) {
@@ -137,6 +206,9 @@ export const App: React.FC = () => {
       const tools = getToolsForHost(host);
       const newClient = await createWebSocketClient(`wss://${location.host}/api/copilot`);
       setClient(newClient);
+
+      // Fetch models via RPC
+      fetchModels(newClient);
       
       // Build host-specific system message
       const hostName = host === Office.HostType.PowerPoint ? "PowerPoint" 
@@ -168,8 +240,19 @@ ${host === Office.HostType.Excel ? `For Excel:
 
 Always use your tools to interact with the document. Never ask users to save, export, or provide file paths.`
       };
+
+      const newSession = await newClient.createSession({
+        model,
+        tools,
+        systemMessage,
+        requestPermission: true,
+        workingDirectory: cwd || undefined,
+      });
+
+      // Register permission handler on the session
+      newSession.registerPermissionHandler(handlePermissionRequest);
       
-      setSession(await newClient.createSession({ model, tools, systemMessage }));
+      setSession(newSession);
     } catch (e: any) {
       setError(`Failed to create session: ${e.message}`);
     }
@@ -192,6 +275,26 @@ Always use your tools to interact with the document. Never ask users to save, ex
   const handleModelChange = (newModel: ModelType) => {
     setSelectedModel(newModel);
     startNewSession(newModel);
+  };
+
+  const handleCwdChange = (newCwd: string) => {
+    setCwd(newCwd);
+    permissionService.cwd = newCwd;
+  };
+
+  const handleAllowAllChange = (v: boolean) => {
+    permissionService.allowAll = v;
+    setAllowAll(v);
+  };
+
+  const handleRemoveRule = (index: number) => {
+    permissionService.removeRule(index);
+    setPermRules(permissionService.getRules());
+  };
+
+  const handleClearRules = () => {
+    permissionService.clearRules();
+    setPermRules([]);
   };
 
   const handleSend = async () => {
@@ -245,19 +348,28 @@ Always use your tools to interact with the document. Never ask users to save, ex
         }
       }
 
+      const addDebugMessage = (text: string) => {
+        setMessages((prev) => [...prev, {
+          id: `debug-${Date.now()}`,
+          text,
+          sender: "assistant" as const,
+          timestamp: new Date(),
+        }]);
+      };
+
+      let eventCount = 0;
       for await (const event of session.query({ 
         prompt: userInput || "Here are some images for you to analyze.",
         attachments: attachments.length > 0 ? attachments : undefined
       })) {
+        eventCount++;
         console.log('[event]', event.type, event);
         
-        if (event.type === 'assistant.message.delta') {
-          // Streaming text chunk
-          const delta = (event.data as any).delta || (event.data as any).content || '';
+        if (event.type === 'assistant.message_delta') {
+          const delta = (event.data as any).deltaContent || '';
           setStreamingText(prev => prev + delta);
           setCurrentActivity("");
         } else if (event.type === 'assistant.message' && (event.data as any).content) {
-          // Complete message - add to messages and clear streaming
           setStreamingText("");
           setCurrentActivity("");
           setMessages((prev) => [...prev, {
@@ -278,21 +390,30 @@ Always use your tools to interact with the document. Never ask users to save, ex
             toolArgs: toolArgs,
             timestamp: new Date(event.timestamp),
           }]);
-        } else if (event.type === 'tool.execution_end') {
+        } else if (event.type === 'tool.execution_complete') {
           setCurrentActivity("Processing result...");
-        } else if (event.type === 'assistant.thinking') {
+        } else if (event.type === 'assistant.reasoning' || event.type === 'assistant.reasoning_delta') {
           setCurrentActivity("Thinking...");
         } else if (event.type === 'assistant.turn_start') {
           setCurrentActivity("Starting response...");
         } else if (event.type === 'assistant.turn_end') {
           setCurrentActivity("");
           setStreamingText("");
-          console.log('[turn_end]', (event.data as any).stopReason);
+        } else if (event.type === 'session.error') {
+          const msg = (event.data as any).message || (event.data as any).error || JSON.stringify(event.data);
+          addDebugMessage(`⚠️ Session error: ${msg}`);
         }
       }
-      console.log('[query complete]');
+      if (eventCount === 0) {
+        addDebugMessage("⚠️ No events received from server. The query may have failed silently.");
+      }
     } catch (e: any) {
-      setError(e.message || 'Unknown error');
+      setMessages((prev) => [...prev, {
+        id: `error-${Date.now()}`,
+        text: `❌ Error: ${e.message || 'Unknown error'}`,
+        sender: "assistant",
+        timestamp: new Date(),
+      }]);
     } finally {
       setIsTyping(false);
     }
@@ -311,15 +432,36 @@ Always use your tools to interact with the document. Never ask users to save, ex
     );
   }
 
+  // Show settings panel
+  if (showSettings) {
+    return (
+      <FluentProvider theme={isDarkMode ? webDarkTheme : webLightTheme}>
+        <PermissionManager
+          cwd={cwd || null}
+          onCwdChange={handleCwdChange}
+          rules={permRules}
+          onRemoveRule={handleRemoveRule}
+          onClearRules={handleClearRules}
+          allowAll={allowAll}
+          onAllowAllChange={handleAllowAllChange}
+          onClose={() => setShowSettings(false)}
+        />
+      </FluentProvider>
+    );
+  }
+
   return (
     <FluentProvider theme={isDarkMode ? webDarkTheme : webLightTheme}>
       <div className={styles.container}>
         <HeaderBar 
           onNewChat={() => startNewSession(selectedModel)} 
           onShowHistory={() => setShowHistory(true)}
+          onShowSettings={() => setShowSettings(true)}
           selectedModel={selectedModel}
           onModelChange={handleModelChange}
           models={availableModels}
+          cwd={cwd || null}
+          allowAll={allowAll}
         />
 
         <MessageList
@@ -339,6 +481,15 @@ Always use your tools to interact with the document. Never ask users to save, ex
           images={images}
           onImagesChange={setImages}
         />
+
+        {/* Permission prompt overlay */}
+        {pendingPermission && (
+          <PermissionDialog
+            request={pendingPermission.request}
+            cwd={cwd || null}
+            onDecision={handlePermissionDecision}
+          />
+        )}
       </div>
     </FluentProvider>
   );

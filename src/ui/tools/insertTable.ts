@@ -39,7 +39,7 @@ Examples:
     },
     required: ["data"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { data, hasHeader = true, style = "grid" } = args as {
       data: string[][];
       hasHeader?: boolean;

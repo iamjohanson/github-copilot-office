@@ -29,7 +29,7 @@ Examples:
     },
     required: ["sourceIndex"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { sourceIndex, targetIndex } = args as { sourceIndex: number; targetIndex?: number };
 
     try {

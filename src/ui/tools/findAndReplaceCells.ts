@@ -43,7 +43,7 @@ Examples:
     },
     required: ["find", "replace"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { find, replace, sheetName, matchCase = false, matchEntireCell = false } = args as {
       find: string;
       replace: string;

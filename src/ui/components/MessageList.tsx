@@ -3,6 +3,7 @@ import { useRef, useEffect, useState } from "react";
 import { makeStyles } from "@fluentui/react-components";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { trafficStats } from "../lib/websocket-transport";
 
 export interface Message {
   id: string;
@@ -226,6 +227,25 @@ const StreamingDots: React.FC = () => {
             background-color: var(--colorNeutralForeground3, #666);
             animation: pulse-dot 1.4s ease-in-out infinite;
           }
+          @keyframes progress-slide {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+          }
+          .activity-progress-bar {
+            height: 2px;
+            width: 100%;
+            border-radius: 1px;
+            background: var(--colorNeutralBackground3, #e0e0e0);
+            overflow: hidden;
+            margin-top: 6px;
+          }
+          .activity-progress-fill {
+            height: 100%;
+            width: 25%;
+            border-radius: 1px;
+            background: var(--colorBrandBackground, #0078d4);
+            animation: progress-slide 1.5s ease-in-out infinite;
+          }
         `}
       </style>
       <span style={{ display: 'inline-flex', gap: '3px', marginLeft: '2px' }}>
@@ -234,6 +254,75 @@ const StreamingDots: React.FC = () => {
         <span className="streaming-dot" style={{ animationDelay: '0.4s' }} />
       </span>
     </>
+  );
+};
+
+// Elapsed time counter
+const ElapsedTime: React.FC = () => {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef(Date.now());
+
+  useEffect(() => {
+    startRef.current = Date.now();
+    setElapsed(0);
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (elapsed < 3) return null;
+  return (
+    <span style={{ fontSize: '11px', color: 'var(--colorNeutralForeground3, #999)', marginLeft: '6px' }}>
+      {elapsed}s
+    </span>
+  );
+};
+
+function formatBytes(b: number): string {
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+  return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Live traffic counter that polls trafficStats
+const TrafficCounter: React.FC = () => {
+  const [stats, setStats] = useState({ bytesIn: 0, bytesOut: 0 });
+  const baseRef = useRef({ bytesIn: trafficStats.bytesIn, bytesOut: trafficStats.bytesOut });
+  const prevInRef = useRef(0);
+  const [flash, setFlash] = useState(false);
+
+  useEffect(() => {
+    baseRef.current = { bytesIn: trafficStats.bytesIn, bytesOut: trafficStats.bytesOut };
+    const interval = setInterval(() => {
+      const inDelta = trafficStats.bytesIn - baseRef.current.bytesIn;
+      const outDelta = trafficStats.bytesOut - baseRef.current.bytesOut;
+      setStats({ bytesIn: inDelta, bytesOut: outDelta });
+      if (inDelta !== prevInRef.current) {
+        prevInRef.current = inDelta;
+        setFlash(true);
+        setTimeout(() => setFlash(false), 200);
+      }
+    }, 250);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      fontSize: '10px',
+      fontFamily: 'monospace',
+      color: 'var(--colorNeutralForeground3, #999)',
+      marginLeft: '8px',
+      transition: 'color 0.2s',
+    }}>
+      <span style={{ color: flash ? 'var(--colorBrandBackground, #0078d4)' : undefined, transition: 'color 0.2s' }}>
+        ↓{formatBytes(stats.bytesIn)}
+      </span>
+      <span>↑{formatBytes(stats.bytesOut)}</span>
+    </span>
   );
 };
 
@@ -327,15 +416,20 @@ export const MessageList: React.FC<MessageListProps> = ({
       {isTyping && (
         <div className={styles.messageAssistant}>
           <img src="/icon-32.png" alt="" className={styles.assistantIcon} />
-          <div style={{ justifySelf: 'start' }}>
+          <div style={{ justifySelf: 'start', width: '100%' }}>
             {streamingText ? (
               <Markdown remarkPlugins={[remarkGfm]}>{streamingText}</Markdown>
             ) : (
-              <span className={styles.streamingIndicator}>
-                {currentActivity || "Thinking"}
-                <StreamingDots />
-              </span>
+              <>
+                <span className={styles.streamingIndicator}>
+                  {currentActivity || "Thinking"}
+                  <StreamingDots />
+                  <ElapsedTime />
+                </span>
+                <div className="activity-progress-bar"><div className="activity-progress-fill" /></div>
+              </>
             )}
+            <TrafficCounter />
           </div>
         </div>
       )}

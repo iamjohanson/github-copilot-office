@@ -119,6 +119,31 @@ async function createServer() {
     }
   });
 
+  // Browse directories for the folder picker
+  apiRouter.get('/browse', (req, res) => {
+    try {
+      const dir = req.query.path || os.homedir();
+      const resolved = path.resolve(String(dir));
+      if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
+        return res.status(400).json({ error: 'Not a directory', path: resolved });
+      }
+      const entries = fs.readdirSync(resolved, { withFileTypes: true });
+      const dirs = entries
+        .filter(e => e.isDirectory() && !e.name.startsWith('.'))
+        .map(e => e.name)
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+      const parent = path.dirname(resolved);
+      res.json({ path: resolved, parent: parent !== resolved ? parent : null, dirs });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Get server's cwd and home for initial folder picker location
+  apiRouter.get('/env', (req, res) => {
+    res.json({ cwd: process.cwd(), home: os.homedir() });
+  });
+
   app.use('/api', apiRouter);
 
   // ========== Vite Dev Server (Frontend) ==========

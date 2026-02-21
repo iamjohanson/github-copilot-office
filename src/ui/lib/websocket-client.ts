@@ -27,12 +27,58 @@ interface ToolCallResponsePayload {
     result: ToolResult;
 }
 
+export interface PermissionRequest {
+    kind: "shell" | "write" | "read" | "mcp";
+    toolCallId?: string;
+    intention?: string;
+    // shell
+    fullCommandText?: string;
+    commands?: ReadonlyArray<{ identifier: string }>;
+    // write
+    fileName?: string;
+    diff?: string;
+    // read
+    path?: string;
+    // mcp
+    serverName?: string;
+    toolName?: string;
+    args?: unknown;
+}
+
+export type PermissionResult =
+    | { kind: "approved" }
+    | { kind: "denied-interactively-by-user" };
+
+export type PermissionHandler = (request: PermissionRequest) => Promise<PermissionResult>;
+
+export interface ModelInfo {
+    id: string;
+    name: string;
+    capabilities?: {
+        supports?: {
+            vision?: boolean;
+            reasoningEffort?: boolean;
+        };
+    };
+}
+
+interface PermissionRequestPayload {
+    sessionId: string;
+    permissionRequest: PermissionRequest;
+}
+
+export interface CreateSessionOptions extends SessionConfig {
+    requestPermission?: boolean;
+    workingDirectory?: string;
+}
+
 /**
  * Browser-compatible CopilotSession
  */
 export class BrowserCopilotSession {
     private eventHandlers: Set<SessionEventHandler> = new Set();
     private toolHandlers: Map<string, ToolHandler> = new Map();
+    private permissionHandler: PermissionHandler | null = null;
 
     constructor(
         public readonly sessionId: string,
@@ -56,16 +102,21 @@ export class BrowserCopilotSession {
         const queue: SessionEvent[] = [];
         let resolve: (() => void) | null = null;
         let done = false;
+        let sendError: Error | null = null;
 
         const unsubscribe = this.on((event) => {
             queue.push(event);
             resolve?.();
-            if (event.type === "session.idle") {
+            if (event.type === "session.idle" || event.type === "session.error") {
                 done = true;
             }
         });
 
-        this.send(options).catch(() => { done = true; });
+        this.send(options).catch((e) => { 
+            sendError = e instanceof Error ? e : new Error(String(e));
+            done = true; 
+            resolve?.();
+        });
 
         try {
             while (!done || queue.length > 0) {
@@ -75,6 +126,9 @@ export class BrowserCopilotSession {
                     await new Promise<void>((r) => { resolve = r; });
                     resolve = null;
                 }
+            }
+            if (sendError) {
+                throw sendError;
             }
         } finally {
             unsubscribe();
@@ -101,8 +155,19 @@ export class BrowserCopilotSession {
         }
     }
 
+    registerPermissionHandler(handler: PermissionHandler): void {
+        this.permissionHandler = handler;
+    }
+
     getToolHandler(name: string): ToolHandler | undefined {
         return this.toolHandlers.get(name);
+    }
+
+    async _handlePermissionRequest(request: PermissionRequest): Promise<PermissionResult> {
+        if (this.permissionHandler) {
+            return this.permissionHandler(request);
+        }
+        return { kind: "denied-interactively-by-user" };
     }
 
     async getMessages(): Promise<SessionEvent[]> {
@@ -152,7 +217,7 @@ export class WebSocketCopilotClient {
         });
     }
 
-    async createSession(config: SessionConfig = {}): Promise<BrowserCopilotSession> {
+    async createSession(config: CreateSessionOptions = {}): Promise<BrowserCopilotSession> {
         if (!this.connection) {
             throw new Error("Client not connected. Call start() first.");
         }
@@ -161,6 +226,8 @@ export class WebSocketCopilotClient {
             model: config.model,
             sessionId: config.sessionId,
             systemMessage: config.systemMessage,
+            requestPermission: config.requestPermission ?? false,
+            workingDirectory: config.workingDirectory,
             tools: config.tools?.map((tool) => ({
                 name: tool.name,
                 description: tool.description,
@@ -173,6 +240,14 @@ export class WebSocketCopilotClient {
         session.registerTools(config.tools);
         this.sessions.set(sessionId, session);
         return session;
+    }
+
+    async listModels(): Promise<ModelInfo[]> {
+        if (!this.connection) {
+            throw new Error("Client not connected. Call start() first.");
+        }
+        const result = await this.connection.sendRequest("models.list", {});
+        return (result as { models: ModelInfo[] }).models;
     }
 
     async stop(): Promise<void> {
@@ -226,7 +301,7 @@ export class WebSocketCopilotClient {
                         toolName: params.toolName,
                         arguments: params.arguments,
                     };
-                    const result = await handler(invocation);
+                    const result = await handler(params.arguments, invocation);
                     console.log('[tool.call] result', result);
                     return { result: typeof result === "string" ? result : result };
                 } catch (error) {
@@ -240,6 +315,22 @@ export class WebSocketCopilotClient {
                             toolTelemetry: {},
                         },
                     };
+                }
+            },
+        );
+
+        this.connection.onRequest(
+            "permission.request",
+            async (params: PermissionRequestPayload) => {
+                const session = this.sessions.get(params.sessionId);
+                if (!session) {
+                    return { result: { kind: "denied-interactively-by-user" } };
+                }
+                try {
+                    const result = await session._handlePermissionRequest(params.permissionRequest);
+                    return { result };
+                } catch {
+                    return { result: { kind: "denied-interactively-by-user" } };
                 }
             },
         );

@@ -16,7 +16,7 @@ export const getWorkbookContent: Tool = {
       },
     },
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { sheetName, range } = (args as { sheetName?: string; range?: string }) || {};
 
     try {

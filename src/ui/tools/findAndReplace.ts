@@ -40,7 +40,7 @@ Examples:
     },
     required: ["find", "replace"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { find, replace, matchCase = false, matchWholeWord = false } = args as {
       find: string;
       replace: string;

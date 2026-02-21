@@ -17,7 +17,7 @@ export const setPresentationContent: Tool = {
     },
     required: ["slideIndex", "text"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { slideIndex, text } = args as { slideIndex: number; text: string };
     
     try {

@@ -30,7 +30,7 @@ Examples:
     },
     required: ["headingText"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { headingText, includeSubsections = true } = args as {
       headingText: string;
       includeSubsections?: boolean;

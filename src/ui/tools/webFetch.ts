@@ -22,7 +22,7 @@ export const webFetch: Tool = {
     },
     required: ["url"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { url } = args as { url: string };
     
     try {

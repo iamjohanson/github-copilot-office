@@ -23,7 +23,7 @@ export const setSelectedRange: Tool = {
     },
     required: ["data"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { data, useFormulas = true } = args as {
       data: any[][];
       useFormulas?: boolean;

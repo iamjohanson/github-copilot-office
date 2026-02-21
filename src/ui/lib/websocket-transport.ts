@@ -13,6 +13,13 @@ import {
     MessageWriter,
 } from "vscode-jsonrpc";
 
+/** Global byte counters for the WebSocket transport */
+export const trafficStats = {
+    bytesIn: 0,
+    bytesOut: 0,
+    reset() { this.bytesIn = 0; this.bytesOut = 0; },
+};
+
 export class WebSocketMessageReader extends AbstractMessageReader implements MessageReader {
     private buffer = new Uint8Array(0);
     private callback: DataCallback | null = null;
@@ -36,6 +43,7 @@ export class WebSocketMessageReader extends AbstractMessageReader implements Mes
             newBuffer.set(this.buffer);
             newBuffer.set(bytes, this.buffer.length);
             this.buffer = newBuffer;
+            trafficStats.bytesIn += bytes.length;
 
             // Parse complete messages
             this.processBuffer();
@@ -108,8 +116,11 @@ export class WebSocketMessageWriter extends AbstractMessageWriter implements Mes
     async write(msg: Message): Promise<void> {
         try {
             const content = JSON.stringify(msg);
-            const header = `Content-Length: ${new TextEncoder().encode(content).length}\r\n\r\n`;
-            this.socket.send(header + content);
+            const encoded = new TextEncoder().encode(content);
+            const header = `Content-Length: ${encoded.length}\r\n\r\n`;
+            const payload = header + content;
+            this.socket.send(payload);
+            trafficStats.bytesOut += new TextEncoder().encode(payload).length;
         } catch (error) {
             this.errorCount++;
             this.fireError(error, msg, this.errorCount);

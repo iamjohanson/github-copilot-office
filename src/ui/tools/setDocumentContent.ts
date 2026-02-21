@@ -13,7 +13,7 @@ export const setDocumentContent: Tool = {
     },
     required: ["html"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { html } = args as { html: string };
     
     try {

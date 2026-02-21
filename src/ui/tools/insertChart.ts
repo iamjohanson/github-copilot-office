@@ -40,7 +40,7 @@ Examples:
     },
     required: ["dataRange"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { dataRange, chartType = "column", title, sheetName } = args as {
       dataRange: string;
       chartType?: string;

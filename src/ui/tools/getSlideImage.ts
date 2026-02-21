@@ -17,7 +17,7 @@ export const getSlideImage: Tool = {
     },
     required: ["slideIndex"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { slideIndex, width = 800 } = args as { slideIndex: number; width?: number };
 
     try {

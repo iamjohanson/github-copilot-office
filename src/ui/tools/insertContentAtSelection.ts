@@ -35,7 +35,7 @@ Examples:
     },
     required: ["html"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { html, location = "replace" } = args as { html: string; location?: string };
     
     try {

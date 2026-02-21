@@ -25,7 +25,7 @@ Note: Due to PowerPoint JavaScript API limitations, this tool may have limited f
     },
     required: ["slideIndex", "notes"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { slideIndex, notes } = args as { slideIndex: number; notes: string };
 
     try {

@@ -19,7 +19,7 @@ Use this to understand context or instructions the presenter has added.`,
     },
     required: [],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { slideIndex } = args as { slideIndex?: number };
 
     try {

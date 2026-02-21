@@ -21,7 +21,7 @@ export const updateSlideShape: Tool = {
     },
     required: ["slideIndex", "shapeIndex", "text"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { slideIndex, shapeIndex, text } = args as { slideIndex: number; shapeIndex: number; text: string };
 
     try {

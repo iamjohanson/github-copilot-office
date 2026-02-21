@@ -27,7 +27,7 @@ export const setWorkbookContent: Tool = {
     },
     required: ["startCell", "data"],
   },
-  handler: async ({ arguments: args }) => {
+  handler: async (args) => {
     const { sheetName, startCell, data } = args as {
       sheetName?: string;
       startCell: string;
