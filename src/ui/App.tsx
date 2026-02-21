@@ -52,9 +52,6 @@ function pickDefaultModel(models: { key: string }[]): ModelType {
   return models[0]?.key || "claude-sonnet-4.5";
 }
 
-// Built-in read-only tools the agent can use alongside Office tools
-const READ_ONLY_BUILTINS = ["view", "grep", "glob", "report_intent"];
-
 export const App: React.FC = () => {
   const styles = useStyles();
   const [availableModels, setAvailableModels] = useState(FALLBACK_MODELS);
@@ -196,16 +193,14 @@ ${host === Office.HostType.Excel ? `For Excel:
 Always use your tools to interact with the document. Never ask users to save, export, or provide file paths.`
       };
 
-      // Restrict to Office tools + read-only builtins
       const toolNames = tools.map(t => t.name);
-      const availableTools = [...toolNames, ...READ_ONLY_BUILTINS];
 
       const newSession = await newClient.createSession({
         model,
         tools,
         systemMessage,
         requestPermission: true,
-        availableTools,
+        availableTools: toolNames,
       });
 
       // Register permission handler on the session
@@ -319,6 +314,9 @@ Always use your tools to interact with the document. Never ask users to save, ex
           preview = data.toolName || '';
         } else if (event.type === 'session.error') {
           preview = data.message || data.error || '';
+        } else if (data) {
+          // Show a compact preview of any other event data
+          preview = JSON.stringify(data).slice(0, 100);
         }
         setDebugEvents(prev => [...prev, { type: event.type, preview, timestamp: Date.now() }]);
         

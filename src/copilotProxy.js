@@ -70,7 +70,13 @@ function setupCopilotProxy(httpsServer) {
       ws.close(1011, 'Child process error');
     });
 
-    child.on('exit', () => {
+    // Log CLI stderr for debugging
+    child.stderr.on('data', (data) => {
+      console.error('[copilot-cli stderr]', data.toString().trim());
+    });
+
+    child.on('exit', (code) => {
+      console.log(`[copilot-cli] exited with code ${code}`);
       ws.close(1000, 'Child process exited');
     });
 
@@ -101,6 +107,29 @@ function setupCopilotProxy(httpsServer) {
         
         const message = buffer.slice(0, messageEnd);
         buffer = buffer.slice(messageEnd);
+
+        // Log CLI→browser messages for debugging
+        try {
+          const body = message.slice(headerEnd + 4).toString('utf8');
+          const json = JSON.parse(body);
+          if (json.method === 'session.event') {
+            const ev = json.params?.event;
+            if (ev) {
+              const preview = ev.type === 'assistant.message_delta'
+                ? (ev.data?.deltaContent || '').slice(0, 60)
+                : ev.type === 'session.error'
+                ? (ev.data?.message || JSON.stringify(ev.data)).slice(0, 100)
+                : '';
+              console.log(`[proxy→ws] ${ev.type}${preview ? ' ' + preview : ''}`);
+            }
+          } else if (json.method === 'tool.call') {
+            console.log(`[proxy→ws] tool.call: ${json.params?.toolName}`);
+          } else if (json.method === 'permission.request') {
+            console.log(`[proxy→ws] permission.request: ${json.params?.permissionRequest?.kind} ${json.params?.permissionRequest?.intention || ''}`);
+          } else if (json.method) {
+            console.log(`[proxy→ws] ${json.method}`);
+          }
+        } catch {}
         
         if (ws.readyState === ws.OPEN) {
           ws.send(message);
