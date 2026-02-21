@@ -6,7 +6,7 @@ import {
   makeStyles,
 } from "@fluentui/react-components";
 import { ChatInput, ImageAttachment } from "./components/ChatInput";
-import { Message, MessageList } from "./components/MessageList";
+import { Message, MessageList, DebugEvent } from "./components/MessageList";
 import { HeaderBar, ModelType } from "./components/HeaderBar";
 import { SessionHistory } from "./components/SessionHistory";
 import { PermissionDialog, PermissionDecision } from "./components/PermissionDialog";
@@ -66,6 +66,7 @@ export const App: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<string>("");
   const [streamingText, setStreamingText] = useState<string>("");
+  const [debugEvents, setDebugEvents] = useState<DebugEvent[]>([]);
   const [session, setSession] = useState<any>(null);
   const [client, setClient] = useState<any>(null);
   const [error, setError] = useState("");
@@ -316,6 +317,7 @@ Always use your tools to interact with the document. Never ask users to save, ex
     setIsTyping(true);
     setCurrentActivity("Processing...");
     setStreamingText("");
+    setDebugEvents([]);
     setError("");
 
     try {
@@ -366,6 +368,22 @@ Always use your tools to interact with the document. Never ask users to save, ex
       })) {
         eventCount++;
         console.log('[event]', event.type, event);
+
+        // Build debug preview
+        const data = event.data as any;
+        let preview = '';
+        if (event.type === 'assistant.message_delta') {
+          preview = (data.deltaContent || '').slice(0, 80);
+        } else if (event.type === 'assistant.message') {
+          preview = (data.content || '').slice(0, 80);
+        } else if (event.type === 'assistant.reasoning_delta') {
+          preview = (data.deltaContent || '').slice(0, 80);
+        } else if (event.type === 'tool.execution_start') {
+          preview = data.toolName || '';
+        } else if (event.type === 'session.error') {
+          preview = data.message || data.error || '';
+        }
+        setDebugEvents(prev => [...prev, { type: event.type, preview, timestamp: Date.now() }]);
         
         if (event.type === 'assistant.message_delta') {
           const delta = (event.data as any).deltaContent || '';
@@ -472,6 +490,7 @@ Always use your tools to interact with the document. Never ask users to save, ex
           isConnecting={!session && !error}
           currentActivity={currentActivity}
           streamingText={streamingText}
+          debugEvents={debugEvents}
         />
 
         {error && <div style={{ color: 'red', padding: '8px' }}>{error}</div>}

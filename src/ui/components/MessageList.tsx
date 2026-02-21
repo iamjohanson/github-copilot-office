@@ -15,12 +15,19 @@ export interface Message {
   images?: Array<{ dataUrl: string; name: string }>;
 }
 
+export interface DebugEvent {
+  type: string;
+  preview: string;
+  timestamp: number;
+}
+
 interface MessageListProps {
   messages: Message[];
   isTyping: boolean;
   isConnecting?: boolean;
   currentActivity?: string;
   streamingText?: string;
+  debugEvents?: DebugEvent[];
 }
 
 // Tool display configuration
@@ -328,6 +335,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   isConnecting,
   currentActivity,
   streamingText,
+  debugEvents,
 }) => {
   const styles = useStyles();
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -426,6 +434,27 @@ export const MessageList: React.FC<MessageListProps> = ({
               </>
             )}
             <TrafficCounter />
+            {debugEvents && debugEvents.length > 0 && (
+              <div style={{
+                marginTop: '8px',
+                maxHeight: '120px',
+                overflowY: 'auto',
+                fontSize: '10px',
+                fontFamily: 'monospace',
+                lineHeight: '1.6',
+                color: 'var(--colorNeutralForeground3, #999)',
+                backgroundColor: 'var(--colorNeutralBackground3, #f5f5f5)',
+                borderRadius: '4px',
+                padding: '6px 8px',
+              }}>
+                {debugEvents.map((ev, i) => (
+                  <div key={i} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ color: 'var(--colorBrandBackground, #0078d4)' }}>{ev.type}</span>
+                    {ev.preview && <span style={{ opacity: 0.7 }}> {ev.preview}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
