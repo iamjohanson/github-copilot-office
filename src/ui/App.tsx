@@ -217,8 +217,8 @@ export const App: React.FC = () => {
         : "Office";
       
       const systemMessage = {
-        mode: "append" as const,
-        content: `You are an AI assistant embedded inside Microsoft ${hostName} as an Office Add-in. You have direct access to the open ${hostName} document through the tools provided.
+        mode: "replace" as const,
+        content: `You are a helpful AI assistant embedded inside Microsoft ${hostName} as an Office Add-in. You have direct access to the open ${hostName} document through the tools provided.
 
 IMPORTANT: You are NOT a file system assistant. The user's document is already open in ${hostName}. Use your ${hostName} tools (like get_presentation_content, get_presentation_overview, get_slide_image, etc.) to read and modify the document directly. Do NOT search for files on disk or ask the user to provide file paths.
 
@@ -245,7 +245,7 @@ Always use your tools to interact with the document. Never ask users to save, ex
         model,
         tools,
         systemMessage,
-        requestPermission: true,
+        requestPermission: false,
         workingDirectory: cwd || undefined,
       });
 

@@ -228,6 +228,7 @@ export class WebSocketCopilotClient {
             systemMessage: config.systemMessage,
             requestPermission: config.requestPermission ?? false,
             workingDirectory: config.workingDirectory,
+            streaming: true,
             tools: config.tools?.map((tool) => ({
                 name: tool.name,
                 description: tool.description,
