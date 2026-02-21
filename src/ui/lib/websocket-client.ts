@@ -222,6 +222,12 @@ export class WebSocketCopilotClient {
             throw new Error("Client not connected. Call start() first.");
         }
 
+        const toolDefs = config.tools?.map((tool) => ({
+                name: tool.name,
+                description: tool.description,
+                parameters: tool.parameters,
+            }));
+
         const response = await this.connection.sendRequest("session.create", {
             model: config.model,
             sessionId: config.sessionId,
@@ -229,11 +235,8 @@ export class WebSocketCopilotClient {
             requestPermission: config.requestPermission ?? false,
             workingDirectory: config.workingDirectory,
             streaming: true,
-            tools: config.tools?.map((tool) => ({
-                name: tool.name,
-                description: tool.description,
-                parameters: tool.parameters,
-            })),
+            availableTools: toolDefs?.map((t) => t.name),
+            tools: toolDefs,
         });
 
         const sessionId = (response as { sessionId: string }).sessionId;
