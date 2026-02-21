@@ -109,14 +109,17 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             </Option>
           ))}
         </Dropdown>
-        <div className={styles.debugRow}>
-          <Switch
-            checked={debugEnabled}
-            onChange={(_, data) => onDebugChange(data.checked)}
-            label="Debug"
-            style={{ fontSize: "11px" }}
-          />
-        </div>
+        {/* Debug toggle — hidden by default, enable via localStorage: copilot-debug-visible=true */}
+        {localStorage.getItem("copilot-debug-visible") === "true" && (
+          <div className={styles.debugRow}>
+            <Switch
+              checked={debugEnabled}
+              onChange={(_, data) => onDebugChange(data.checked)}
+              label="Debug"
+              style={{ fontSize: "11px" }}
+            />
+          </div>
+        )}
       </div>
       <div className={styles.buttonGroup}>
         <Tooltip content="History" relationship="label">
