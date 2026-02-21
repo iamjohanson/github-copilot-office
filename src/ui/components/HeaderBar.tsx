@@ -1,18 +1,17 @@
 import * as React from "react";
-import { Button, Tooltip, makeStyles, Dropdown, Option, tokens } from "@fluentui/react-components";
-import { Compose24Regular, History24Regular, Settings24Regular } from "@fluentui/react-icons";
+import { Button, Tooltip, Switch, makeStyles, Dropdown, Option, tokens } from "@fluentui/react-components";
+import { Compose24Regular, History24Regular } from "@fluentui/react-icons";
 
 export type ModelType = string;
 
 interface HeaderBarProps {
   onNewChat: () => void;
   onShowHistory: () => void;
-  onShowSettings: () => void;
   selectedModel: ModelType;
   onModelChange: (model: ModelType) => void;
   models: { key: string; label: string }[];
-  cwd: string | null;
-  allowAll: boolean;
+  debugEnabled: boolean;
+  onDebugChange: (v: boolean) => void;
 }
 
 const useStyles = makeStyles({
@@ -32,31 +31,12 @@ const useStyles = makeStyles({
     minWidth: 0,
     flex: 1,
   },
-  cwdRow: {
+  debugRow: {
     display: "flex",
     alignItems: "center",
     gap: "4px",
     fontSize: "11px",
     color: tokens.colorNeutralForeground3,
-    cursor: "pointer",
-    ":hover": {
-      color: tokens.colorNeutralForeground1,
-    },
-  },
-  cwdText: {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    fontFamily: "monospace",
-  },
-  allowAllBadge: {
-    fontSize: "9px",
-    fontWeight: 600,
-    padding: "0 4px",
-    borderRadius: "3px",
-    backgroundColor: "#107c10",
-    color: "white",
-    whiteSpace: "nowrap",
   },
   dropdown: {
     minWidth: "120px",
@@ -100,16 +80,14 @@ const useStyles = makeStyles({
 export const HeaderBar: React.FC<HeaderBarProps> = ({
   onNewChat,
   onShowHistory,
-  onShowSettings,
   selectedModel,
   onModelChange,
   models,
-  cwd,
-  allowAll,
+  debugEnabled,
+  onDebugChange,
 }) => {
   const styles = useStyles();
   const selectedLabel = models.find(m => m.key === selectedModel)?.label || selectedModel;
-  const cwdDisplay = cwd ? cwd.split("/").pop() || cwd : null;
 
   return (
     <div className={styles.header}>
@@ -131,24 +109,16 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             </Option>
           ))}
         </Dropdown>
-        <Tooltip content={cwd || "No working directory set — click Settings to configure"} relationship="label">
-          <div className={styles.cwdRow} onClick={onShowSettings}>
-            <span>{cwd ? "📂" : "⚠️"}</span>
-            <span className={styles.cwdText}>{cwdDisplay || "No cwd set"}</span>
-            {allowAll && <span className={styles.allowAllBadge}>ALLOW ALL</span>}
-          </div>
-        </Tooltip>
+        <div className={styles.debugRow}>
+          <Switch
+            checked={debugEnabled}
+            onChange={(_, data) => onDebugChange(data.checked)}
+            label="Debug"
+            style={{ fontSize: "11px" }}
+          />
+        </div>
       </div>
       <div className={styles.buttonGroup}>
-        <Tooltip content="Settings" relationship="label">
-          <Button
-            icon={<Settings24Regular />}
-            appearance="subtle"
-            onClick={onShowSettings}
-            aria-label="Settings"
-            className={styles.iconButton}
-          />
-        </Tooltip>
         <Tooltip content="History" relationship="label">
           <Button
             icon={<History24Regular />}

@@ -70,6 +70,7 @@ interface PermissionRequestPayload {
 export interface CreateSessionOptions extends SessionConfig {
     requestPermission?: boolean;
     workingDirectory?: string;
+    availableTools?: string[];
 }
 
 /**
@@ -235,6 +236,7 @@ export class WebSocketCopilotClient {
             requestPermission: config.requestPermission ?? false,
             workingDirectory: config.workingDirectory,
             streaming: true,
+            availableTools: config.availableTools,
             tools: toolDefs,
         });
 

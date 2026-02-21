@@ -9,12 +9,9 @@ import { ChatInput, ImageAttachment } from "./components/ChatInput";
 import { Message, MessageList, DebugEvent } from "./components/MessageList";
 import { HeaderBar, ModelType } from "./components/HeaderBar";
 import { SessionHistory } from "./components/SessionHistory";
-import { PermissionDialog, PermissionDecision } from "./components/PermissionDialog";
-import { PermissionManager } from "./components/PermissionManager";
 import { useIsDarkMode } from "./useIsDarkMode";
 import { useLocalStorage } from "./useLocalStorage";
-import { createWebSocketClient, PermissionRequest, PermissionResult, ModelInfo } from "./lib/websocket-client";
-import { PermissionService } from "./lib/permissionService";
+import { createWebSocketClient, ModelInfo } from "./lib/websocket-client";
 import { getToolsForHost } from "./tools";
 import { remoteLog } from "./lib/remoteLog";
 import { trafficStats } from "./lib/websocket-transport";
@@ -55,7 +52,8 @@ function pickDefaultModel(models: { key: string }[]): ModelType {
   return models[0]?.key || "claude-sonnet-4.5";
 }
 
-const permissionService = new PermissionService();
+// Built-in read-only tools the agent can use alongside Office tools
+const READ_ONLY_BUILTINS = ["view", "grep", "glob", "report_intent"];
 
 export const App: React.FC = () => {
   const styles = useStyles();
@@ -72,62 +70,18 @@ export const App: React.FC = () => {
   const [error, setError] = useState("");
   const [selectedModel, setSelectedModel] = useLocalStorage<ModelType>("word-addin-selected-model", "");
   const [showHistory, setShowHistory] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [officeHost, setOfficeHost] = useState<OfficeHost>("word");
-  const [cwd, setCwd] = useLocalStorage<string>("copilot-cwd", "");
-  const [allowAll, setAllowAll] = useState(permissionService.allowAll);
-  const [permRules, setPermRules] = useState(permissionService.getRules());
+  const [debugEnabled, setDebugEnabled] = useLocalStorage<boolean>("copilot-debug", false);
   const isDarkMode = useIsDarkMode();
-
-  // Permission prompt state
-  const [pendingPermission, setPendingPermission] = useState<{
-    request: PermissionRequest;
-    resolve: (result: PermissionResult) => void;
-  } | null>(null);
   
   // Track session creation time
   const sessionCreatedAt = useRef<string>("");
 
-  // Keep permissionService.cwd in sync
-  useEffect(() => {
-    permissionService.cwd = cwd || null;
-  }, [cwd]);
-
-  // Permission handler called by the WebSocket client
+  // Permission handler: always approve (read-only builtins are safe)
   const handlePermissionRequest = useCallback(
-    (request: PermissionRequest): Promise<PermissionResult> => {
-      // Try auto-evaluation first
-      const autoResult = permissionService.evaluate(request);
-      if (autoResult) return Promise.resolve(autoResult);
-
-      // Prompt the user
-      return new Promise<PermissionResult>((resolve) => {
-        setPendingPermission({ request, resolve });
-      });
-    },
+    () => Promise.resolve({ kind: "approved" as const }),
     [],
-  );
-
-  const handlePermissionDecision = useCallback(
-    (decision: PermissionDecision) => {
-      if (!pendingPermission) return;
-      const { request, resolve } = pendingPermission;
-
-      if (decision === "always") {
-        // Save a rule for this kind + path
-        const pathPrefix = request.path || request.fileName || cwd || "/";
-        permissionService.addRule({ kind: request.kind, pathPrefix });
-        setPermRules(permissionService.getRules());
-        resolve({ kind: "approved" });
-      } else if (decision === "allow") {
-        resolve({ kind: "approved" });
-      } else {
-        resolve({ kind: "denied-interactively-by-user" });
-      }
-      setPendingPermission(null);
-    },
-    [pendingPermission, cwd],
   );
 
   // Fetch available models from CLI via models.list RPC (or fallback to /api/models)
@@ -197,7 +151,6 @@ export const App: React.FC = () => {
     setStreamingText("");
     setError("");
     setShowHistory(false);
-    setShowSettings(false);
     
     try {
       if (client) {
@@ -243,12 +196,16 @@ ${host === Office.HostType.Excel ? `For Excel:
 Always use your tools to interact with the document. Never ask users to save, export, or provide file paths.`
       };
 
+      // Restrict to Office tools + read-only builtins
+      const toolNames = tools.map(t => t.name);
+      const availableTools = [...toolNames, ...READ_ONLY_BUILTINS];
+
       const newSession = await newClient.createSession({
         model,
         tools,
         systemMessage,
         requestPermission: true,
-        workingDirectory: cwd || undefined,
+        availableTools,
       });
 
       // Register permission handler on the session
@@ -277,26 +234,6 @@ Always use your tools to interact with the document. Never ask users to save, ex
   const handleModelChange = (newModel: ModelType) => {
     setSelectedModel(newModel);
     startNewSession(newModel);
-  };
-
-  const handleCwdChange = (newCwd: string) => {
-    setCwd(newCwd);
-    permissionService.cwd = newCwd;
-  };
-
-  const handleAllowAllChange = (v: boolean) => {
-    permissionService.allowAll = v;
-    setAllowAll(v);
-  };
-
-  const handleRemoveRule = (index: number) => {
-    permissionService.removeRule(index);
-    setPermRules(permissionService.getRules());
-  };
-
-  const handleClearRules = () => {
-    permissionService.clearRules();
-    setPermRules([]);
   };
 
   const handleSend = async () => {
@@ -452,36 +389,17 @@ Always use your tools to interact with the document. Never ask users to save, ex
     );
   }
 
-  // Show settings panel
-  if (showSettings) {
-    return (
-      <FluentProvider theme={isDarkMode ? webDarkTheme : webLightTheme}>
-        <PermissionManager
-          cwd={cwd || null}
-          onCwdChange={handleCwdChange}
-          rules={permRules}
-          onRemoveRule={handleRemoveRule}
-          onClearRules={handleClearRules}
-          allowAll={allowAll}
-          onAllowAllChange={handleAllowAllChange}
-          onClose={() => setShowSettings(false)}
-        />
-      </FluentProvider>
-    );
-  }
-
   return (
     <FluentProvider theme={isDarkMode ? webDarkTheme : webLightTheme}>
       <div className={styles.container}>
         <HeaderBar 
           onNewChat={() => startNewSession(selectedModel)} 
           onShowHistory={() => setShowHistory(true)}
-          onShowSettings={() => setShowSettings(true)}
           selectedModel={selectedModel}
           onModelChange={handleModelChange}
           models={availableModels}
-          cwd={cwd || null}
-          allowAll={allowAll}
+          debugEnabled={debugEnabled}
+          onDebugChange={setDebugEnabled}
         />
 
         <MessageList
@@ -490,7 +408,7 @@ Always use your tools to interact with the document. Never ask users to save, ex
           isConnecting={!session && !error}
           currentActivity={currentActivity}
           streamingText={streamingText}
-          debugEvents={debugEvents}
+          debugEvents={debugEnabled ? debugEvents : undefined}
         />
 
         {error && <div style={{ color: 'red', padding: '8px' }}>{error}</div>}
@@ -502,15 +420,6 @@ Always use your tools to interact with the document. Never ask users to save, ex
           images={images}
           onImagesChange={setImages}
         />
-
-        {/* Permission prompt overlay */}
-        {pendingPermission && (
-          <PermissionDialog
-            request={pendingPermission.request}
-            cwd={cwd || null}
-            onDecision={handlePermissionDecision}
-          />
-        )}
       </div>
     </FluentProvider>
   );
