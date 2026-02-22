@@ -365,12 +365,26 @@ Always use your tools to interact with the document. Never ask users to save, ex
         addDebugMessage("⚠️ No events received from server. The query may have failed silently.");
       }
     } catch (e: any) {
-      setMessages((prev) => [...prev, {
-        id: `error-${Date.now()}`,
-        text: `❌ Error: ${e.message || 'Unknown error'}`,
-        sender: "assistant",
-        timestamp: new Date(),
-      }]);
+      const errMsg = e.message || 'Unknown error';
+      // If the session was lost (e.g., laptop sleep), auto-recover
+      if (errMsg.includes('Session not found') || errMsg.includes('not connected')) {
+        setMessages((prev) => [...prev, {
+          id: `reconnect-${Date.now()}`,
+          text: "🔄 Session lost — reconnecting...",
+          sender: "assistant",
+          timestamp: new Date(),
+        }]);
+        try {
+          await startNewSession(selectedModel);
+        } catch {}
+      } else {
+        setMessages((prev) => [...prev, {
+          id: `error-${Date.now()}`,
+          text: `❌ Error: ${errMsg}`,
+          sender: "assistant",
+          timestamp: new Date(),
+        }]);
+      }
     } finally {
       setIsTyping(false);
     }
